@@ -101,7 +101,7 @@ async def check_bypass(user_id):
 async def encode_universal(data):
     return "free-" + base64.urlsafe_b64encode(data.encode()).decode()
 
-@Bot.on_message(filters.command("genfree") & filters.private & filters.user(ADMINS))
+@Client.on_message(filters.command("genfree") & filters.private & filters.user(ADMINS))
 async def generate_universal_link(client: Bot, message: Message):
 
     if not message.reply_to_message:
@@ -470,7 +470,3 @@ After payment, contact the bot admin to activate your premium subscription.
     await message.reply(upi_text)
 
 '''
-
-if __name__ == "__main__":
-    print("Bot is starting...")
-    bot.run()
