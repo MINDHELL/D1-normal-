@@ -1,4 +1,3 @@
-# line number 160-169 check for changes - token
 from pymongo import MongoClient
 import asyncio
 import base64
@@ -66,9 +65,56 @@ async def get_user_subscription(user_id):
 
 async def is_premium_user(user_id):
     is_premium, expiry_time = await get_user_subscription(user_id)
-    if is_premium and expiry_time > time.time():
-        return True
+
+    if is_premium and expiry_time:
+        if expiry_time > time.time():
+            return True
+        else:
+            await remove_premium_user(user_id)  # auto remove expired
+            return False
+
     return False
+
+async def check_bypass(user_id):
+    data = bypass_db.find_one({"user_id": user_id})
+    current_time = time.time()
+
+    if data:
+        last_access = data.get("last_access", 0)
+
+        remaining = 60 - (current_time - last_access)
+        if remaining > 0:
+            return False, int(remaining)
+
+    bypass_db.update_one(
+        {"user_id": user_id},
+        {"$set": {"last_access": current_time}},
+        upsert=True
+    )
+
+    return True, 0
+
+
+async def encode_universal(data):
+    return "free-" + base64.urlsafe_b64encode(data.encode()).decode()
+
+@Bot.on_message(filters.command("genfree") & filters.private & filters.user(ADMINS))
+async def generate_universal_link(client: Bot, message: Message):
+
+    if not message.reply_to_message:
+        return await message.reply("Reply to a file to generate universal link.")
+
+    file_id = message.reply_to_message.id
+
+    encoded = await encode_universal(f"file-{file_id}")
+    link = f"https://t.me/{client.username}?start={encoded}"
+
+    await message.reply(
+        f"🔓 Universal Link (No Bypass / No Premium Check):\n\n{link}"
+    )
+
+
+
 
 
 async def schedule_auto_delete(client, chat_id, message_id, delay):
@@ -115,6 +161,42 @@ async def start_command(client: Client, message):
             sent_message = await message.reply_text("This link is for premium users only! \n\nUpgrade to access✨️. \nClick here /myplan")
             #asyncio.create_task(schedule_auto_delete(client, sent_message.chat.id, sent_message.id, delay=600))
             return
+
+
+# BYPASS CHECK (only for normal non-premium links)
+if not premium_status and not is_premium_link:
+    allowed, remaining = await check_bypass(user_id)
+
+    if not allowed:
+        return await message.reply(
+            f"⚠️ Bypass Detected!\n\n"
+            f"Please wait {remaining} seconds before using another link.\n\n"
+            f"Upgrade to Premium for instant access 🚀"
+        )
+
+
+
+        # UNIVERSAL LINK CHECK
+if base64_string.startswith("free-"):
+    try:
+        decoded = base64.urlsafe_b64decode(
+            base64_string.replace("free-", "")
+        ).decode()
+
+        argument = decoded.split("-")
+        ids = [int(argument[1])]
+
+        messages = await get_messages(client, ids)
+
+        for msg in messages:
+            await msg.copy(chat_id=message.from_user.id)
+
+        return
+
+    except Exception:
+        return await message.reply("Invalid universal link.")
+
+        
 
         argument = decoded_string.split("-")
         ids = []
