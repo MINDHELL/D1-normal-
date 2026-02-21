@@ -61,7 +61,7 @@ TUT_VID = os.environ.get("TUT_VID", "https://t.me/Ultroid_Official/18")
 
 # ignore this one
 SECONDS = int(os.getenv("SECONDS", "20")) # auto delete in seconds
-PORT = os.environ.get("PORT", "8080")
+PORT = int(os.environ.get("PORT", "8080"))
 TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
 START_MSG = os.environ.get("START_MESSAGE", "Hello {first}\n\nI am a content provider bot ✨️.")
 
