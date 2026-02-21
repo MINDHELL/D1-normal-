@@ -124,139 +124,186 @@ async def schedule_auto_delete(client, chat_id, message_id, delay):
     await sleep(delay)  # Delay in seconds
     await client.delete_messages(chat_id=chat_id, message_ids=message_id)
     logger.info(f"Deleted message with ID {message_id} from chat {chat_id}")
-
+    
 @Client.on_message(filters.command("start") & filters.private & subscribed)
-async def start_command(client: Client, message):
+async def start_command(client: Client, message: Message):
+
     user_id = message.from_user.id
 
     if not await present_user(user_id):
-        try:
-            await add_user(user_id)
-            logger.info(f"Added new user with ID: {user_id}")
-        except Exception as e:
-            logger.error(f"Error adding user {user_id}: {e}")
+        await add_user(user_id)
 
     premium_status = await is_premium_user(user_id)
 
-    if len(message.text) > 7:
-        base64_string = message.text.split(" ", 1)[1]
+    # ==============================
+    # IF LINK IS PROVIDED
+    # ==============================
+    if len(message.command) > 1:
+
+        base64_string = message.command[1]
+
+        # ==============================
+        # 1️⃣ UNIVERSAL LINK CHECK
+        # ==============================
+        if base64_string.startswith("free-"):
+            try:
+                decoded = base64.urlsafe_b64decode(
+                    base64_string.replace("free-", "")
+                ).decode()
+
+                argument = decoded.split("-")
+                ids = [int(argument[1])]
+
+                messages = await get_messages(client, ids)
+
+                for msg in messages:
+                    await msg.copy(chat_id=user_id)
+
+                return
+
+            except Exception:
+                return await message.reply("Invalid universal link.")
+
+        # ==============================
+        # 2️⃣ DECODE PREMIUM / NORMAL
+        # ==============================
         is_premium_link = False
 
         try:
             decoded_string = await decode_premium(base64_string)
             is_premium_link = True
-        except Exception as e:
+        except:
             try:
                 decoded_string = await decode(base64_string)
-            except Exception as e:
-                await message.reply_text("Invalid link provided. \n\nGet help /upi")
-                return
+            except:
+                return await message.reply("Invalid link provided.")
 
-        if "vip-" in decoded_string:
-            if not premium_status:
-                sent_message = await message.reply_text(
-                    "This VIP content is only accessible to premium (VIP) users! \n\nUpgrade to VIP to access✨️. \nClick here /myplan"
-                )
-                #asyncio.create_task(schedule_auto_delete(client, sent_message.chat.id, sent_message.id, delay=600))
-                return 
+        # ==============================
+        # 3️⃣ VIP CHECK
+        # ==============================
+        if "vip-" in decoded_string and not premium_status:
+            return await message.reply(
+                "This VIP content is only for Premium users.\n\nUpgrade using /myplan"
+            )
 
         if is_premium_link and not premium_status:
-            sent_message = await message.reply_text("This link is for premium users only! \n\nUpgrade to access✨️. \nClick here /myplan")
-            #asyncio.create_task(schedule_auto_delete(client, sent_message.chat.id, sent_message.id, delay=600))
-            return
+            return await message.reply(
+                "This link is for premium users only!\n\nUpgrade using /myplan"
+            )
 
+        # ==============================
+        # 4️⃣ BYPASS CHECK (NORMAL USERS ONLY)
+        # ==============================
+        if not premium_status and not is_premium_link:
+            allowed, remaining = await check_bypass(user_id)
 
-# BYPASS CHECK (only for normal non-premium links)
-if not premium_status and not is_premium_link:
-    allowed, remaining = await check_bypass(user_id)
+            if not allowed:
+                return await message.reply(
+                    f"⚠️ Bypass Detected!\n\n"
+                    f"Please wait {remaining} seconds before using another link.\n\n"
+                    f"Upgrade to Premium for instant access 🚀"
+                )
 
-    if not allowed:
-        return await message.reply(
-            f"⚠️ Bypass Detected!\n\n"
-            f"Please wait {remaining} seconds before using another link.\n\n"
-            f"Upgrade to Premium for instant access 🚀"
-        )
-
-
-
-        # UNIVERSAL LINK CHECK
-if base64_string.startswith("free-"):
-    try:
-        decoded = base64.urlsafe_b64decode(
-            base64_string.replace("free-", "")
-        ).decode()
-
-        argument = decoded.split("-")
-        ids = [int(argument[1])]
-
-        messages = await get_messages(client, ids)
-
-        for msg in messages:
-            await msg.copy(chat_id=message.from_user.id)
-
-        return
-
-    except Exception:
-        return await message.reply("Invalid universal link.")
-
-        
-
+        # ==============================
+        # 5️⃣ EXTRACT FILE IDS
+        # ==============================
         argument = decoded_string.split("-")
         ids = []
 
         if len(argument) == 3:
             start = int(int(argument[1]) / abs(client.db_channel.id))
             end = int(int(argument[2]) / abs(client.db_channel.id))
-            ids = list(range(start, end + 1)) if start <= end else list(range(end, start + 1))
+            ids = list(range(start, end + 1))
         elif len(argument) == 2:
             ids = [int(int(argument[1]) / abs(client.db_channel.id))]
 
+        # ==============================
+        # 6️⃣ SEND FILES
+        # ==============================
         temp_msg = await message.reply("Please wait...")
-        #asyncio.create_task(schedule_auto_delete(client, temp_msg.chat.id, temp_msg.id, delay=600))
 
         try:
             messages = await get_messages(client, ids)
 
             for msg in messages:
-                caption = CUSTOM_CAPTION.format(previouscaption=msg.caption.html if msg.caption else "", filename=msg.document.file_name) if CUSTOM_CAPTION and msg.document else (msg.caption.html if msg.caption else "")
-                reply_markup = None if DISABLE_CHANNEL_BUTTON else msg.reply_markup
-                sent_message = await msg.copy(chat_id=message.from_user.id, protect_content=False, caption=caption, reply_markup=reply_markup)
-                if AUTO_DELETE == True:
-                    asyncio.create_task(schedule_auto_delete(client, sent_message.chat.id, sent_message.id, delay=DELETE_AFTER))
-                await sleep(0.5)
-                
-            if GET_AGAIN == True:
-                get_file_markup = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("GET FILE AGAIN", url=f"https://t.me/{client.username}?start={message.text.split()[1]}")]
-                ])
-                await message.reply(GET_INFORM, reply_markup=get_file_markup)
+                caption = (
+                    CUSTOM_CAPTION.format(
+                        previouscaption=msg.caption.html if msg.caption else "",
+                        filename=msg.document.file_name
+                    )
+                    if CUSTOM_CAPTION and msg.document
+                    else (msg.caption.html if msg.caption else "")
+                )
 
-            
-              
-            
-        except Exception as e:
-            logger.error(f"Error fetching messages: {e}")
+                reply_markup = None if DISABLE_CHANNEL_BUTTON else msg.reply_markup
+
+                try:
+                    sent_message = await msg.copy(
+                        chat_id=user_id,
+                        protect_content=False,
+                        caption=caption,
+                        reply_markup=reply_markup
+                    )
+                except FloodWait as e:
+                    await asyncio.sleep(e.x)
+                    sent_message = await msg.copy(chat_id=user_id)
+
+                if AUTO_DELETE:
+                    asyncio.create_task(
+                        schedule_auto_delete(
+                            client,
+                            sent_message.chat.id,
+                            sent_message.id,
+                            DELETE_AFTER
+                        )
+                    )
+
+                await asyncio.sleep(0.3)
+
         finally:
             await temp_msg.delete()
+
+    # ==============================
+    # NO LINK → NORMAL START
+    # ==============================
     else:
+
         reply_markup = InlineKeyboardMarkup(
             [
-                [InlineKeyboardButton("😊 About Me", callback_data="about"), InlineKeyboardButton("🔒 Close", callback_data="close")],
-                [InlineKeyboardButton("✨ Upgrade to Premium" if not premium_status else "✨ Premium Content", callback_data="premium_content")],
+                [
+                    InlineKeyboardButton("😊 About Me", callback_data="about"),
+                    InlineKeyboardButton("🔒 Close", callback_data="close")
+                ],
+                [
+                    InlineKeyboardButton(
+                        "✨ Upgrade to Premium" if not premium_status else "✨ Premium Content",
+                        callback_data="premium_content"
+                    )
+                ],
             ]
         )
+
         welcome_text = (
-            f"Welcome {message.from_user.first_name}! "
-            + ("As a premium user, you have access to exclusive content!" if premium_status else "Enjoy using the bot. Upgrade to premium for more features! \n\nCheck Your current Plan : /myplan")
+            f"Welcome {message.from_user.first_name}!\n\n"
+            + (
+                "You are a Premium user. Enjoy instant access!"
+                if premium_status
+                else "Upgrade to Premium for instant access.\nCheck plan using /myplan"
+            )
         )
-        sent_message = await message.reply_text(
+
+        await message.reply_text(
             text=welcome_text,
             reply_markup=reply_markup,
             disable_web_page_preview=True,
             quote=True
         )
-        #asyncio.create_task(schedule_auto_delete(client, sent_message.chat.id, sent_message.id, delay=autodelete))
-        logger.info(f"Sent welcome message to user {user_id} with premium status: {premium_status}")
+
+
+
+
+#asyncio.create_task(schedule_auto_delete(client, sent_message.chat.id, sent_message.id, delay=autodelete))
+logger.info(f"Sent welcome message to user {user_id} with premium status: {premium_status}")
 
 
 
