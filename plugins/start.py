@@ -28,6 +28,9 @@ client = MongoClient(DB_URI)  # Replace with your MongoDB URI
 db = client[DB_NAME]  # Database name
 phdlust = db["phdlust"]  # Collection for users
 deletions = db["deletions"]  # Collection for scheduled deletions
+# ADD THIS NEAR YOUR OTHER COLLECTIONS
+bypass_db = db["bypass_tracker"]
+
 
 
 
