@@ -301,12 +301,6 @@ async def start_command(client: Client, message: Message):
 
 
 
-
-#asyncio.create_task(schedule_auto_delete(client, sent_message.chat.id, sent_message.id, delay=autodelete))
-logger.info(f"Sent welcome message to user {user_id} with premium status: {premium_status}")
-
-
-
 #=====================================================================================##
 
 WAIT_MSG = """"<b>Processing ...</b>"""
