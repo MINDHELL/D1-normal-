@@ -12,7 +12,7 @@ API_HASH = os.environ.get("API_HASH", "1ba790464745c13ce149649d73137e52")
  
 BAN = int(os.environ.get("BAN", "1198543450")) #Owner user id
 OWNER = os.environ.get("OWNER", "XSUPPRT4BOT") #Owner username
-OWNER_ID = int(os.environ.get("OWNER_ID", "7232121375")) #Owner user id
+OWNER_ID = int(os.environ.get("OWNER_ID", "7437503888")) #Owner user id
 SUPPORT_GROUP = os.environ.get("SUPPORT_GROUP", "Xsupport_chats") # WITHOUR @
 CHANNEL = os.environ.get("CHANNEL", "Allvidsbackup3") # WITHOUR @
 
@@ -45,7 +45,7 @@ OWNER_USERNAME = os.getenv('OWNER_USERNAME', 'XSUPPRT4BOT')
 DB_URI = os.environ.get("DATABASE_URL", "mongodb+srv://aarshhub:wcCgmKoCu2sTsEtv@cluster0.6shiu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 DB_NAME = os.environ.get("DATABASE_NAME", "Dark")
 
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1003888552835")) #database save channel id
+CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1003806568021")) #database save channel id
 FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "-1002546714412"))
 FORCE_SUB_CHANNEL2 = int(os.environ.get("FORCE_SUB_CHANNEL2", "0"))
 FORCE_SUB_CHANNEL3 = int(os.environ.get("FORCE_SUB_CHANNEL3", "0"))
@@ -60,7 +60,7 @@ IS_VERIFY = os.environ.get("IS_VERIFY", "True")
 TUT_VID = os.environ.get("TUT_VID", "https://t.me/Ultroid_Official/18")
 
 # ignore this one
-SECONDS = int(os.getenv("SECONDS", "200")) # auto delete in seconds
+SECONDS = int(os.getenv("SECONDS", "20")) # auto delete in seconds
 PORT = os.environ.get("PORT", "8080")
 TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
 START_MSG = os.environ.get("START_MESSAGE", "Hello {first}\n\nI am a content provider bot ✨️.")
