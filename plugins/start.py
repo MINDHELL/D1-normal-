@@ -125,7 +125,7 @@ async def schedule_auto_delete(client, chat_id, message_id, delay):
     await client.delete_messages(chat_id=chat_id, message_ids=message_id)
     logger.info(f"Deleted message with ID {message_id} from chat {chat_id}")
     
-@Client.on_message(filters.command("start") & filters.private & subscribed)
+@Bot.on_message(filters.command("start") & filters.private & subscribed)
 async def start_command(client: Client, message: Message):
 
     user_id = message.from_user.id
@@ -470,3 +470,7 @@ After payment, contact the bot admin to activate your premium subscription.
     await message.reply(upi_text)
 
 '''
+
+if __name__ == "__main__":
+    print("Bot is starting...")
+    bot.run()
